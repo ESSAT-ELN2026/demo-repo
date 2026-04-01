@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WindGuard AI — Supervision Éolienne</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050c14;
+    --bg2: #0a1628;
+    --bg3: #0d1f3a;
+    --panel: #071525;
+    --border: #0e3060;
+    --border2: #1a4a8a;
+    --accent: #00d4ff;
+    --accent2: #0099cc;
+    --green: #00ff9d;
+    --red: #ff3b5c;
+    --orange: #ff9f1c;
+    --yellow: #ffe566;
+    --text: #c8dff5;
+    --text2: #6a8faf;
+    --text3: #3a5a7a;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Exo 2', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(0,80,160,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 90%, rgba(0,180,255,0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* GRID BACKGROUND */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,100,200,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,100,200,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── TOPBAR ─── */
+  .topbar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 58px;
+    background: rgba(5,12,20,0.95);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 34px;
+    height: 34px;
+    position: relative;
+  }
+
+  .logo-icon svg { width: 100%; height: 100%; }
+
+  .logo-text {
+    font-family: var(--sans);
+    font-weight: 900;
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,212,255,0.4);
+  }
+
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 3px;
+    margin-top: 1px;
+  }
+
+  .topbar-center {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse-dot 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  .status-ok {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--green);
+  }
+
+  .status-ok::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+  }
+
+  /* ─── LAYOUT ─── */
+  .layout {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 220px 1fr 280px;
+    grid-template-rows: auto 1fr auto;
+    min-height: calc(100vh - 58px);
+    gap: 0;
+  }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    background: rgba(7,21,37,0.6);
+  }
+
+  .sidebar-section {
+    padding: 0 16px;
+    margin-bottom: 24px;
+  }
+
+  .sidebar-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-left: 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text2);
+    transition: all 0.2s;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover {
+    background: rgba(0,150,255,0.08);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  .nav-item.active {
+    background: rgba(0,212,255,0.1);
+    color: var(--accent);
+    border-color: rgba(0,212,255,0.2);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+
+  .nav-icon { font-size: 15px; width: 20px; text-align: center; }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--red);
+    color: white;
+    font-size: 9px;
+    font-family: var(--mono);
+    padding: 1px 6px;
+    border-radius: 10px;
+    box-shadow: 0 0 8px rgba(255,59,92,0.4);
+  }
+
+  .nav-badge.orange { background: var(--orange); box-shadow: 0 0 8px rgba(255,159,28,0.4); }
+
+  /* TURBINE LIST */
+  .turbine-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 4px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .turbine-item:hover { background: rgba(0,150,255,0.06); border-color: var(--border); }
+  .turbine-item.selected { background: rgba(0,212,255,0.08); border-color: rgba(0,212,255,0.15); }
+
+  .turbine-name { font-size: 12px; font-family: var(--mono); color: var(--text); }
+  .turbine-loc { font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+  .turbine-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .ts-ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .ts-warn { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+  .ts-err { background: var(--red); box-shadow: 0 0 6px var(--red); animation: pulse-dot 1s infinite; }
+
+  /* ─── MAIN ─── */
+  .main {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+  }
+
+  /* KPI ROW */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .kpi-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .kpi-card:hover { border-color: var(--border2); }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .kpi-card.blue::before { background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+  .kpi-card.green::before { background: linear-gradient(90deg, transparent, var(--green), transparent); }
+  .kpi-card.orange::before { background: linear-gradient(90deg, transparent, var(--orange), transparent); }
+  .kpi-card.red::before { background: linear-gradient(90deg, transparent, var(--red), transparent); }
+
+  .kpi-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .kpi-card.blue .kpi-value { color: var(--accent); text-shadow: 0 0 20px rgba(0,212,255,0.3); }
+  .kpi-card.green .kpi-value { color: var(--green); text-shadow: 0 0 20px rgba(0,255,157,0.3); }
+  .kpi-card.orange .kpi-value { color: var(--orange); text-shadow: 0 0 20px rgba(255,159,28,0.3); }
+  .kpi-card.red .kpi-value { color: var(--red); text-shadow: 0 0 20px rgba(255,59,92,0.3); }
+
+  .kpi-sub { font-size: 11px; color: var(--text2); }
+
+  .kpi-trend {
+    position: absolute;
+    bottom: 12px; right: 14px;
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+
+  .trend-up { color: var(--green); }
+  .trend-down { color: var(--red); }
+
+  /* MID ROW */
+  .mid-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* PANELS */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .panel-body { padding: 16px; }
+
+  /* VIDEO FEED */
+  .video-feed {
+    background: #000;
+    border-radius: 8px;
+    aspect-ratio: 16/9;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .video-feed canvas { width: 100%; height: 100%; display: block; }
+
+  .video-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .vid-corner {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-color: var(--accent);
+    border-style: solid;
+    opacity: 0.7;
+  }
+
+  .vid-corner.tl { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
+  .vid-corner.tr { top: 8px; right: 8px; border-width: 2px 2px 0 0; }
+  .vid-corner.bl { bottom: 8px; left: 8px; border-width: 0 0 2px 2px; }
+  .vid-corner.br { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
+
+  .vid-info {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    opacity: 0.8;
+    line-height: 1.6;
+  }
+
+  .vid-rec {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--red);
+  }
+
+  .rec-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--red);
+    animation: pulse-dot 1s infinite;
+  }
+
+  /* DETECTION BOX ANIMATION */
+  .detect-box {
+    position: absolute;
+    border: 2px solid;
+    border-radius: 2px;
+    animation: fadeInBox 0.3s ease;
+  }
+
+  @keyframes fadeInBox {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .detect-label {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  /* CHART */
+  .chart-area {
+    height: 160px;
+    position: relative;
+  }
+
+  .chart-area canvas { width: 100% !important; height: 100% !important; }
+
+  /* ALERTS */
+  .alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    border: 1px solid;
+    position: relative;
+    overflow: hidden;
+    animation: slideIn 0.4s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .alert-item.critical {
+    background: rgba(255,59,92,0.08);
+    border-color: rgba(255,59,92,0.25);
+  }
+
+  .alert-item.warning {
+    background: rgba(255,159,28,0.08);
+    border-color: rgba(255,159,28,0.25);
+  }
+
+  .alert-item.info {
+    background: rgba(0,212,255,0.06);
+    border-color: rgba(0,212,255,0.15);
+  }
+
+  .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .alert-content { flex: 1; }
+
+  .alert-title {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .alert-item.critical .alert-title { color: var(--red); }
+  .alert-item.warning .alert-title { color: var(--orange); }
+  .alert-item.info .alert-title { color: var(--accent); }
+
+  .alert-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text2);
+  }
+
+  .alert-conf {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .alert-item.critical .alert-conf { color: var(--red); background: rgba(255,59,92,0.15); }
+  .alert-item.warning .alert-conf { color: var(--orange); background: rgba(255,159,28,0.15); }
+  .alert-item.info .alert-conf { color: var(--accent); background: rgba(0,212,255,0.1); }
+
+  /* ─── RIGHT PANEL ─── */
+  .right-panel {
+    border-left: 1px solid var(--border);
+    background: rgba(7,21,37,0.6);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .rp-section {
+    border-bottom: 1px solid var(--border);
+    padding: 16px;
+  }
+
+  .rp-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  /* DRONE STATUS */
+  .drone-visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .drone-icon {
+    font-size: 36px;
+    filter: drop-shadow(0 0 12px rgba(0,212,255,0.5));
+    animation: hover-drone 3s ease-in-out infinite;
+  }
+
+  @keyframes hover-drone {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
+  .drone-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(14,48,96,0.5);
+  }
+
+  .metric-row:last-child { border-bottom: none; }
+
+  .metric-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text2);
+  }
+
+  .metric-value {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* BATTERY BAR */
+  .battery-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+
+  .battery-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  /* MINI STATS */
+  .mini-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .mini-stat {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .mini-stat-val {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .mini-stat-lbl {
+    font-size: 9px;
+    color: var(--text3);
+    margin-top: 2px;
+    letter-spacing: 1px;
+  }
+
+  /* INSPECTION LOG */
+  .log-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(14,48,96,0.4);
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+
+  .log-time { color: var(--text3); width: 50px; flex-shrink: 0; }
+  .log-msg { color: var(--text2); flex: 1; }
+  .log-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+  /* BOTTOM BAR */
+  .bottom-bar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: 36px;
+    background: rgba(5,12,20,0.95);
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  .bottom-bar span { display: flex; align-items: center; gap: 6px; }
+
+  /* SCAN LINE EFFECT */
+  @keyframes scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+  }
+
+  .scanline {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(transparent, rgba(0,212,255,0.06), transparent);
+    animation: scanline 8s linear infinite;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* SCROLL */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* PILL TAG */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 1px;
+  }
+
+  .pill.green { background: rgba(0,255,157,0.1); color: var(--green); border: 1px solid rgba(0,255,157,0.2); }
+  .pill.orange { background: rgba(255,159,28,0.1); color: var(--orange); border: 1px solid rgba(255,159,28,0.2); }
+  .pill.red { background: rgba(255,59,92,0.1); color: var(--red); border: 1px solid rgba(255,59,92,0.2); }
+  .pill.blue { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+  }
+
+  .btn-primary {
+    background: rgba(0,212,255,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(0,212,255,0.3);
+  }
+
+  .btn-primary:hover {
+    background: rgba(0,212,255,0.25);
+    box-shadow: 0 0 12px rgba(0,212,255,0.2);
+  }
+
+  .btn-danger {
+    background: rgba(255,59,92,0.12);
+    color: var(--red);
+    border: 1px solid rgba(255,59,92,0.25);
+  }
+</style>
+</head>
+<body>
+
+<div class="scanline"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 34 34" fill="none">
+        <circle cx="17" cy="17" r="16" stroke="#00d4ff" stroke-width="1.5" opacity="0.4"/>
+        <circle cx="17" cy="17" r="3" fill="#00d4ff"/>
+        <line x1="17" y1="3" x2="17" y2="14" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="17" y1="20" x2="5" y2="28" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="17" y1="20" x2="29" y2="28" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="17" y1="17" x2="17" y2="30" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">KRIMO LOKBANI AI</div>
+      <div class="logo-sub">SYSTÈME D'INSPECTION ÉOLIENNE</div>
+    </div>
+  </div>
+
+  <div class="topbar-center">
+    <div class="live-dot"></div>
+    FLUX EN DIRECT &nbsp;·&nbsp; <span id="clock" style="color:var(--accent)">--:--:--</span>
+    &nbsp;·&nbsp; PARC ADRAR — ALGÉRIE
+  </div>
+
+  <div class="topbar-right">
+    <span class="status-ok">DRONE ACTIF</span>
+    <span>|</span>
+    <span>IA v2.1.3</span>
+    <span>|</span>
+    <span style="color:var(--green)">RÉSEAU OK</span>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Navigation</div>
+      <div class="nav-item active"><span class="nav-icon">📡</span> Supervision Live</div>
+      <div class="nav-item"><span class="nav-icon">🗺️</span> Carte du Parc</div>
+      <div class="nav-item"><span class="nav-icon">⚠️</span> Alertes <span class="nav-badge">3</span></div>
+      <div class="nav-item"><span class="nav-icon">📊</span> Analyses IA</div>
+      <div class="nav-item"><span class="nav-icon">🧊</span> Jumeau Numérique</div>
+      <div class="nav-item"><span class="nav-icon">📋</span> Rapports <span class="nav-badge orange">2</span></div>
+      <div class="nav-item"><span class="nav-icon">⚙️</span> Paramètres</div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Turbines — Parc Adrar</div>
+
+      <div class="turbine-item selected">
+        <div>
+          <div class="turbine-name">WT-001</div>
+          <div class="turbine-loc">Secteur A — En inspection</div>
+        </div>
+        <div class="turbine-status ts-warn"></div>
+      </div>
+
+      <div class="turbine-item">
+        <div>
+          <div class="turbine-name">WT-002</div>
+          <div class="turbine-loc">Secteur A — Normal</div>
+        </div>
+        <div class="turbine-status ts-ok"></div>
+      </div>
+
+      <div class="turbine-item">
+        <div>
+          <div class="turbine-name">WT-003</div>
+          <div class="turbine-loc">Secteur B — Alerte</div>
+        </div>
+        <div class="turbine-status ts-err"></div>
+      </div>
+
+      <div class="turbine-item">
+        <div>
+          <div class="turbine-name">WT-004</div>
+          <div class="turbine-loc">Secteur B — Normal</div>
+        </div>
+        <div class="turbine-status ts-ok"></div>
+      </div>
+
+      <div class="turbine-item">
+        <div>
+          <div class="turbine-name">WT-005</div>
+          <div class="turbine-loc">Secteur C — Normal</div>
+        </div>
+        <div class="turbine-status ts-ok"></div>
+      </div>
+
+      <div class="turbine-item">
+        <div>
+          <div class="turbine-name">WT-006</div>
+          <div class="turbine-loc">Secteur C — Planifiée</div>
+        </div>
+        <div class="turbine-status" style="background:var(--text3)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- KPI ROW -->
+    <div class="kpi-row">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Turbines Actives</div>
+        <div class="kpi-value">12</div>
+        <div class="kpi-sub">sur 15 turbines</div>
+        <div class="kpi-trend trend-up">↑ +2 ce mois</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Précision IA</div>
+        <div class="kpi-value">94<span style="font-size:16px">%</span></div>
+        <div class="kpi-sub">YOLOv8 — mAP@0.5</div>
+        <div class="kpi-trend trend-up">↑ +1.2%</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Défauts Détectés</div>
+        <div class="kpi-value">7</div>
+        <div class="kpi-sub">3 critiques · 4 mineurs</div>
+        <div class="kpi-trend trend-down">↑ +3 aujourd'hui</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Alertes Actives</div>
+        <div class="kpi-value">3</div>
+        <div class="kpi-sub">WT-001 · WT-003</div>
+        <div class="kpi-trend" style="color:var(--orange)">⚠ Action requise</div>
+      </div>
+    </div>
+
+    <!-- MID ROW -->
+    <div class="mid-row">
+
+      <!-- FLUX VIDÉO -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">📹 Flux Caméra — WT-001 · Pale B</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="pill green">● LIVE</span>
+            <span class="pill blue">IMX477 16mm</span>
+          </div>
+        </div>
+        <div class="panel-body" style="padding:12px">
+          <div class="video-feed">
+            <canvas id="videoCanvas" width="640" height="360"></canvas>
+            <div class="video-overlay">
+              <div class="vid-corner tl"></div>
+              <div class="vid-corner tr"></div>
+              <div class="vid-corner bl"></div>
+              <div class="vid-corner br"></div>
+              <div class="vid-info">
+                <div>ALT: 42.3m</div>
+                <div>VIT: 2.1 m/s</div>
+                <div>FPS: 30</div>
+              </div>
+              <div class="vid-rec"><div class="rec-dot"></div>REC</div>
+              <!-- Detection boxes -->
+              <div class="detect-box" style="left:28%;top:22%;width:18%;height:14%;border-color:#ff3b5c">
+                <div class="detect-label" style="background:rgba(255,59,92,0.8);color:white">FISSURE 96%</div>
+              </div>
+              <div class="detect-box" style="left:58%;top:45%;width:22%;height:16%;border-color:#ff9f1c">
+                <div class="detect-label" style="background:rgba(255,159,28,0.8);color:white">CORROSION 87%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALERTES -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">⚠️ Alertes Temps Réel</span>
+          <button class="btn btn-primary">Export PDF</button>
+        </div>
+        <div class="panel-body" style="max-height:260px;overflow-y:auto">
+
+          <div class="alert-item critical">
+            <div class="alert-icon">🔴</div>
+            <div class="alert-content">
+              <div class="alert-title">FISSURE CRITIQUE — WT-001 · Pale B</div>
+              <div class="alert-meta">14:32:07 · Position: 42% pale · Longueur estimée: 8.3mm</div>
+            </div>
+            <div class="alert-conf">96%</div>
+          </div>
+
+          <div class="alert-item warning">
+            <div class="alert-icon">🟠</div>
+            <div class="alert-content">
+              <div class="alert-title">CORROSION DÉTECTÉE — WT-001 · Bord attaque</div>
+              <div class="alert-meta">14:31:42 · Surface: ~12 cm² · Progression lente</div>
+            </div>
+            <div class="alert-conf">87%</div>
+          </div>
+
+          <div class="alert-item critical">
+            <div class="alert-icon">🔴</div>
+            <div class="alert-content">
+              <div class="alert-title">ÉCAILLAGE SÉVÈRE — WT-003 · Pale A</div>
+              <div class="alert-meta">13:58:19 · Zone: 18% pale · Maintenance urgente</div>
+            </div>
+            <div class="alert-conf">91%</div>
+          </div>
+
+          <div class="alert-item info">
+            <div class="alert-icon">🔵</div>
+            <div class="alert-content">
+              <div class="alert-title">INSPECTION TERMINÉE — WT-002</div>
+              <div class="alert-meta">13:20:00 · Aucun défaut · Prochaine: dans 30 jours</div>
+            </div>
+            <div class="alert-conf">OK</div>
+          </div>
+
+          <div class="alert-item warning">
+            <div class="alert-icon">🟠</div>
+            <div class="alert-content">
+              <div class="alert-title">MICRO-FISSURE — WT-001 · Pale C</div>
+              <div class="alert-meta">12:45:33 · Longueur: 1.2mm · À surveiller</div>
+            </div>
+            <div class="alert-conf">79%</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- CHART ROW -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">📈 Historique des Détections — 7 derniers jours</span>
+        <div style="display:flex;gap:12px;font-family:var(--mono);font-size:10px">
+          <span style="color:var(--red)">■ Fissures</span>
+          <span style="color:var(--orange)">■ Corrosion</span>
+          <span style="color:var(--yellow)">■ Écaillage</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="chart-area">
+          <canvas id="chartCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+
+    <div class="rp-section">
+      <div class="rp-title">État du Drone</div>
+      <div class="drone-visual">
+        <div class="drone-icon">🚁</div>
+        <div class="drone-name">DRONE-01 · EN VOL</div>
+      </div>
+
+      <div class="metric-row">
+        <span class="metric-label">Batterie</span>
+        <span class="metric-value" style="color:var(--green)" id="battery-val">72%</span>
+      </div>
+      <div class="battery-bar">
+        <div class="battery-fill" id="battery-fill" style="width:72%;background:linear-gradient(90deg,#00cc7a,#00ff9d)"></div>
+      </div>
+
+      <div style="height:10px"></div>
+
+      <div class="metric-row">
+        <span class="metric-label">Altitude</span>
+        <span class="metric-value" style="color:var(--accent)" id="alt-val">42.3 m</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Vitesse</span>
+        <span class="metric-value" style="color:var(--accent)">2.1 m/s</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Signal GPS</span>
+        <span class="metric-value" style="color:var(--green)">FORT</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Température</span>
+        <span class="metric-value" style="color:var(--orange)">47°C</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Mode</span>
+        <span class="metric-value" style="color:var(--accent)">AUTO</span>
+      </div>
+    </div>
+
+    <div class="rp-section">
+      <div class="rp-title">Statistiques IA</div>
+      <div class="mini-stat-grid">
+        <div class="mini-stat">
+          <div class="mini-stat-val">247</div>
+          <div class="mini-stat-lbl">IMAGES/MIN</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val" style="color:var(--green)">94%</div>
+          <div class="mini-stat-lbl">PRÉCISION</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val" style="color:var(--orange)">0.4s</div>
+          <div class="mini-stat-lbl">LATENCE</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val" style="color:var(--red)">7</div>
+          <div class="mini-stat-lbl">DÉFAUTS</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rp-section" style="flex:1;overflow-y:auto">
+      <div class="rp-title">Journal Système</div>
+
+      <div class="log-item">
+        <div class="log-time">14:32:07</div>
+        <div class="log-dot" style="background:var(--red)"></div>
+        <div class="log-msg" style="color:var(--red)">Fissure critique détectée WT-001</div>
+      </div>
+      <div class="log-item">
+        <div class="log-time">14:31:42</div>
+        <div class="log-dot" style="background:var(--orange)"></div>
+        <div class="log-msg">Corrosion détectée — bord attaque</div>
+      </div>
+      <div class="log-item">
+        <div class="log-time">14:28:00</div>
+        <div class="log-dot" style="background:var(--accent)"></div>
+        <div class="log-msg">Drone positionné — Pale B, 42m</div>
+      </div>
+      <div class="log-item">
+        <div class="log-time">14:25:13</div>
+        <div class="log-dot" style="background:var(--accent)"></div>
+        <div class="log-msg">Inspection WT-001 démarrée</div>
+      </div>
+      <div class="log-item">
+        <div class="log-time">14:20:00</div>
+        <div class="log-dot" style="background:var(--green)"></div>
+        <div class="log-msg">Décollage automatique — OK</div>
+      </div>
+      <div class="log-item">
+        <div class="log-time">13:58:19</div>
+        <div class="log-dot" style="background:var(--red)"></div>
+        <div class="log-msg" style="color:var(--red)">Écaillage sévère — WT-003</div>
+      </div>
+      <div class="log-item">
+        <div class="log-time">13:20:00</div>
+        <div class="log-dot" style="background:var(--green)"></div>
+        <div class="log-msg" style="color:var(--green)">WT-002 — Aucun défaut ✓</div>
+      </div>
+    </div>
+
+    <div style="padding:12px 16px;border-top:1px solid var(--border)">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1">▶ Lancer Inspection</button>
+        <button class="btn btn-danger">⏹ Stop</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <span>🛰️ ESSA TLEMCEN · PFE 2026-2027</span>
+    <span>YOLOv8 · OpenCV · Flask · Three.js</span>
+    <span id="fps-counter">FPS: 30 · PING: 12ms</span>
+  </div>
+
+</div>
+
+<script>
+// ─── HORLOGE ───
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('fr-FR');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── VIDEO CANVAS SIMULÉ ───
+const vc = document.getElementById('videoCanvas');
+const vctx = vc.getContext('2d');
+
+function drawVideoFrame() {
+  const w = vc.width, h = vc.height;
+
+  // Background gradient (simule une pale d'éolienne)
+  const grad = vctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, '#1a2a1a');
+  grad.addColorStop(0.4, '#2d4a2d');
+  grad.addColorStop(1, '#1a3a2a');
+  vctx.fillStyle = grad;
+  vctx.fillRect(0, 0, w, h);
+
+  // Texture pale
+  vctx.strokeStyle = 'rgba(100,150,100,0.15)';
+  vctx.lineWidth = 1;
+  for(let i = 0; i < w; i += 20) {
+    vctx.beginPath();
+    vctx.moveTo(i + Math.sin(Date.now()/2000)*3, 0);
+    vctx.lineTo(i + Math.sin(Date.now()/2000)*3, h);
+    vctx.stroke();
+  }
+
+  // Surface pale principale
+  vctx.fillStyle = 'rgba(180,200,180,0.08)';
+  vctx.fillRect(40, 30, w-80, h-60);
+
+  // Simule une fissure
+  const t = Date.now() / 1000;
+  vctx.strokeStyle = 'rgba(200,100,80,0.7)';
+  vctx.lineWidth = 1.5;
+  vctx.beginPath();
+  vctx.moveTo(180, 80);
+  vctx.lineTo(200, 100);
+  vctx.lineTo(195, 120);
+  vctx.stroke();
+
+  // Simule zone corrosion
+  vctx.fillStyle = 'rgba(150,100,50,0.3)';
+  vctx.beginPath();
+  vctx.ellipse(370+Math.sin(t)*2, 160+Math.cos(t)*1, 40, 28, 0.3, 0, Math.PI*2);
+  vctx.fill();
+
+  // Grain overlay
+  for(let i = 0; i < 200; i++) {
+    const x = Math.random() * w;
+    const y = Math.random() * h;
+    vctx.fillStyle = `rgba(255,255,255,${Math.random()*0.03})`;
+    vctx.fillRect(x, y, 1, 1);
+  }
+}
+
+setInterval(drawVideoFrame, 33);
+
+// ─── GRAPHIQUE DÉTECTIONS ───
+const cc = document.getElementById('chartCanvas');
+const cctx = cc.getContext('2d');
+
+function resizeChart() {
+  cc.width = cc.parentElement.offsetWidth;
+  cc.height = cc.parentElement.offsetHeight;
+}
+resizeChart();
+window.addEventListener('resize', resizeChart);
+
+const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const fissures = [2, 3, 1, 4, 2, 5, 7];
+const corrosion = [1, 2, 2, 1, 3, 2, 4];
+const ecaillage = [0, 1, 1, 2, 1, 3, 2];
+
+function drawChart() {
+  const w = cc.width, h = cc.height;
+  const pad = { top: 15, right: 20, bottom: 30, left: 35 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+  const maxVal = 9;
+
+  cctx.clearRect(0, 0, w, h);
+
+  // Grid
+  cctx.strokeStyle = 'rgba(14,48,96,0.6)';
+  cctx.lineWidth = 1;
+  for(let i = 0; i <= 4; i++) {
+    const y = pad.top + (ch / 4) * i;
+    cctx.beginPath();
+    cctx.moveTo(pad.left, y);
+    cctx.lineTo(w - pad.right, y);
+    cctx.stroke();
+    cctx.fillStyle = '#3a5a7a';
+    cctx.font = '9px Share Tech Mono';
+    cctx.fillText(Math.round(maxVal - (maxVal/4)*i), 2, y + 3);
+  }
+
+  // Draw lines
+  function drawLine(data, color, alpha = 1) {
+    const step = cw / (data.length - 1);
+    cctx.strokeStyle = color;
+    cctx.lineWidth = 2;
+    cctx.globalAlpha = alpha;
+    cctx.beginPath();
+    data.forEach((v, i) => {
+      const x = pad.left + i * step;
+      const y = pad.top + ch - (v / maxVal) * ch;
+      i === 0 ? cctx.moveTo(x, y) : cctx.lineTo(x, y);
+    });
+    cctx.stroke();
+
+    // Fill under
+    cctx.globalAlpha = 0.08;
+    cctx.fillStyle = color;
+    cctx.beginPath();
+    data.forEach((v, i) => {
+      const x = pad.left + i * step;
+      const y = pad.top + ch - (v / maxVal) * ch;
+      i === 0 ? cctx.moveTo(x, y) : cctx.lineTo(x, y);
+    });
+    cctx.lineTo(pad.left + (data.length-1)*step, pad.top + ch);
+    cctx.lineTo(pad.left, pad.top + ch);
+    cctx.closePath();
+    cctx.fill();
+
+    // Dots
+    cctx.globalAlpha = 1;
+    cctx.fillStyle = color;
+    data.forEach((v, i) => {
+      const x = pad.left + i * step;
+      const y = pad.top + ch - (v / maxVal) * ch;
+      cctx.beginPath();
+      cctx.arc(x, y, 3, 0, Math.PI*2);
+      cctx.fill();
+    });
+  }
+
+  drawLine(fissures, '#ff3b5c');
+  drawLine(corrosion, '#ff9f1c');
+  drawLine(ecaillage, '#ffe566');
+
+  // X labels
+  cctx.fillStyle = '#3a5a7a';
+  cctx.font = '9px Share Tech Mono';
+  cctx.textAlign = 'center';
+  const step = cw / (days.length - 1);
+  days.forEach((d, i) => {
+    cctx.fillText(d, pad.left + i * step, h - 6);
+  });
+  cctx.textAlign = 'left';
+  cctx.globalAlpha = 1;
+}
+
+setInterval(drawChart, 100);
+
+// ─── BATTERIE SIMULÉE ───
+let bat = 72;
+setInterval(() => {
+  bat = Math.max(20, bat - 0.05);
+  const el = document.getElementById('battery-val');
+  const fill = document.getElementById('battery-fill');
+  if(el) {
+    el.textContent = Math.round(bat) + '%';
+    fill.style.width = bat + '%';
+    const color = bat > 50 ? 'linear-gradient(90deg,#00cc7a,#00ff9d)' :
+                  bat > 25 ? 'linear-gradient(90deg,#cc8800,#ff9f1c)' :
+                             'linear-gradient(90deg,#cc2244,#ff3b5c)';
+    fill.style.background = color;
+    el.style.color = bat > 50 ? 'var(--green)' : bat > 25 ? 'var(--orange)' : 'var(--red)';
+  }
+}, 200);
+
+// ─── ALTITUDE SIMULÉE ───
+let baseAlt = 42.3;
+setInterval(() => {
+  const el = document.getElementById('alt-val');
+  if(el) {
+    const alt = baseAlt + (Math.random() - 0.5) * 0.4;
+    el.textContent = alt.toFixed(1) + ' m';
+  }
+}, 800);
+</script>
+</body>
+</html>
